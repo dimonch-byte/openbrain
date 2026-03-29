@@ -151,31 +151,29 @@
         <div class="loading">Loading products...</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://jliupjtnvloyzdvtnvws.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsaXVwanRudmxveXpkdnRudndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTk5NjMsImV4cCI6MjA5MDI5NTk2M30.ehFTcnolHS87eCzO5BFKnXqp9400l_-f7erE9Ux6Gi8';
-
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const STAGES = ['D1','D2','D3','D4','D5','D6','D7','D8','D9','D10'];
         let allProducts = [];
 
         async function loadProducts() {
-            const { data, error } = await supabase
-                .from('products')
-                .select('*')
-                .order('stage', { ascending: true });
-
-            if (error) {
-                document.getElementById('error').textContent = 'Failed to load: ' + error.message;
+            try {
+                const res = await fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=stage.asc', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+                if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+                allProducts = await res.json();
+                render(allProducts);
+            } catch (e) {
+                document.getElementById('error').textContent = 'Failed to load: ' + e.message;
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('content').innerHTML = '<div class="empty-state">Could not connect to database</div>';
-                return;
             }
-
-            allProducts = data || [];
-            render(allProducts);
         }
 
         function render(products) {
