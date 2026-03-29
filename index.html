@@ -368,12 +368,37 @@
         .toast.error { background: #7f1d1d; color: #fca5a5; }
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
 
+        /* Nav */
+        .nav {
+            display: flex;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+            overflow-x: auto;
+        }
+        .nav a {
+            padding: 10px 20px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: #94a3b8; }
+        .nav a.active { color: #6366f1; border-bottom-color: #6366f1; }
+
         .empty-state { text-align: center; padding: 60px 20px; color: #475569; font-size: 15px; }
         .loading { text-align: center; padding: 60px 20px; color: #6366f1; font-size: 15px; }
         .error-banner { background: #7f1d1d; color: #fca5a5; padding: 12px 20px; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
+    <div class="nav">
+        <a href="./" class="active">Products</a>
+        <a href="contacts.html">Contacts</a>
+        <a href="knowledge.html">Knowledge</a>
+    </div>
     <div class="header">
         <div class="header-top">
             <h1>Product Pipeline</h1>

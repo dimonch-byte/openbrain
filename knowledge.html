@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>OpenBrain - Knowledge Base</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        /* Nav */
+        .nav {
+            display: flex;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+            overflow-x: auto;
+        }
+        .nav a {
+            padding: 10px 20px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: #94a3b8; }
+        .nav a.active { color: #6366f1; border-bottom-color: #6366f1; }
+
+        /* Header */
+        .header {
+            background: #1e293b;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .header h1 { font-size: 20px; font-weight: 700; color: #f8fafc; }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+        .btn-icon {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { background: #475569; color: #e2e8f0; }
+        .btn-add {
+            background: #4f46e5;
+            border: 1px solid #6366f1;
+            color: #fff;
+            padding: 0 14px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .btn-add:hover { background: #4338ca; }
+        .search-row { display: flex; gap: 8px; }
+        .search-bar {
+            flex: 1;
+            padding: 10px 14px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 15px;
+            outline: none;
+        }
+        .search-bar:focus { border-color: #6366f1; }
+        .search-bar::placeholder { color: #64748b; }
+        .filter-select {
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Category chips */
+        .categories {
+            display: flex;
+            gap: 8px;
+            padding: 12px 20px;
+            overflow-x: auto;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .cat-chip {
+            flex-shrink: 0;
+            padding: 6px 12px;
+            background: #334155;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .cat-chip:hover { background: #475569; color: #e2e8f0; }
+        .cat-chip.active { border-color: #6366f1; background: #3730a3; color: #e2e8f0; }
+        .cat-chip .count { color: #6366f1; margin-left: 4px; }
+
+        /* Content */
+        .content { padding: 16px 20px 80px; }
+        .category-group { margin-bottom: 24px; }
+        .category-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6366f1;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        /* Entries */
+        .entry {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+        .entry:hover { border-color: #6366f1; }
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+        .entry-key {
+            font-size: 15px;
+            font-weight: 600;
+            color: #f8fafc;
+            flex: 1;
+        }
+        .entry-value {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .entry-source {
+            font-size: 12px;
+            color: #475569;
+        }
+        .entry-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+        }
+        .entry-date { font-size: 11px; color: #475569; }
+        .entry-actions { display: flex; gap: 6px; }
+        .btn-sm {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover { background: #475569; color: #e2e8f0; }
+        .btn-sm.delete:hover { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h2 { font-size: 18px; color: #f8fafc; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-input:focus { border-color: #6366f1; }
+        textarea.form-input { resize: vertical; min-height: 60px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-cancel {
+            padding: 10px 20px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-save {
+            padding: 10px 20px;
+            background: #4f46e5;
+            border: 1px solid #6366f1;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-save:hover { background: #4338ca; }
+
+        /* Status bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #475569;
+            z-index: 10;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-dot.offline { background: #ef4444; }
+
+        .toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #065f46;
+            color: #6ee7b7;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+            animation: fadeIn 0.2s;
+        }
+        .toast.error { background: #7f1d1d; color: #fca5a5; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #475569; font-size: 15px; }
+        .loading { text-align: center; padding: 60px 20px; color: #6366f1; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="./">Products</a>
+        <a href="contacts.html">Contacts</a>
+        <a href="knowledge.html" class="active">Knowledge</a>
+    </div>
+    <div class="header">
+        <div class="header-top">
+            <h1>Knowledge Base</h1>
+            <div class="header-actions">
+                <button class="btn-icon" id="refreshBtn" title="Refresh">&#8635;</button>
+                <button class="btn-add" id="addBtn">+ New</button>
+            </div>
+        </div>
+        <div class="search-row">
+            <input type="text" class="search-bar" id="search" placeholder="Search by key, value, or source...">
+        </div>
+    </div>
+    <div class="categories" id="categories"></div>
+    <div class="content" id="content">
+        <div class="loading">Loading knowledge base...</div>
+    </div>
+
+    <div class="status-bar">
+        <span><span class="status-dot" id="statusDot"></span><span id="statusText">Connected</span></span>
+        <span id="lastRefresh"></span>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">New Entry</h2>
+            <input type="hidden" id="editId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" class="form-input" id="fCategory" placeholder="Home, Car, Kids, Work..." list="catList">
+                    <datalist id="catList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Source</label>
+                    <input type="text" class="form-input" id="fSource" placeholder="Where this came from">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Key</label>
+                <input type="text" class="form-input" id="fKey" placeholder="Short label (e.g. Living room paint)">
+            </div>
+            <div class="form-group">
+                <label>Value</label>
+                <textarea class="form-input" id="fValue" placeholder="The actual info (e.g. Benjamin Moore HC-172)"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelBtn">Cancel</button>
+                <button class="btn-save" id="saveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://jliupjtnvloyzdvtnvws.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsaXVwanRudmxveXpkdnRudndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTk5NjMsImV4cCI6MjA5MDI5NTk2M30.ehFTcnolHS87eCzO5BFKnXqp9400l_-f7erE9Ux6Gi8';
+        const HEADERS = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+
+        let allEntries = [];
+        let currentCategory = '';
+
+        // --- API ---
+        async function apiGet() {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/knowledge_base?select=*&order=category.asc,key.asc', { headers: HEADERS });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiInsert(entry) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/knowledge_base', { method: 'POST', headers: HEADERS, body: JSON.stringify(entry) });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiUpdate(id, entry) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/knowledge_base?id=eq.' + id, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(entry) });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiDelete(id) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/knowledge_base?id=eq.' + id, { method: 'DELETE', headers: HEADERS });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        }
+
+        // --- Load & Render ---
+        async function loadEntries() {
+            try {
+                allEntries = await apiGet();
+                updateStatus(true);
+                updateCatDatalist();
+                applyFiltersAndRender();
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="empty-state">Could not connect to database</div>';
+                updateStatus(false);
+            }
+        }
+
+        function updateCatDatalist() {
+            const cats = [...new Set(allEntries.map(e => e.category).filter(Boolean))].sort();
+            document.getElementById('catList').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+        }
+
+        function toggleCategory(cat) {
+            currentCategory = currentCategory === cat ? '' : cat;
+            applyFiltersAndRender();
+        }
+
+        function applyFiltersAndRender() {
+            const q = document.getElementById('search').value.toLowerCase();
+            let filtered = allEntries;
+            if (q) filtered = filtered.filter(e =>
+                (e.key||'').toLowerCase().includes(q) ||
+                (e.value||'').toLowerCase().includes(q) ||
+                (e.source||'').toLowerCase().includes(q)
+            );
+            if (currentCategory) filtered = filtered.filter(e => e.category === currentCategory);
+            renderCategories();
+            renderEntries(filtered);
+        }
+
+        function renderCategories() {
+            const el = document.getElementById('categories');
+            const counts = {};
+            allEntries.forEach(e => { const c = e.category||'Uncategorized'; counts[c] = (counts[c]||0) + 1; });
+            const cats = Object.keys(counts).sort();
+            const chipsHtml = cats.map(c => {
+                const active = currentCategory === c ? ' active' : '';
+                return `<div class="cat-chip${active}" onclick="toggleCategory('${esc(c)}')">${esc(c)}<span class="count">${counts[c]}</span></div>`;
+            }).join('');
+            const clearHtml = currentCategory ? `<div class="cat-chip active" onclick="toggleCategory('${esc(currentCategory)}')" style="background:#7f1d1d;border-color:#ef4444">Clear</div>` : '';
+            el.innerHTML = chipsHtml + clearHtml || '';
+        }
+
+        function renderEntries(entries) {
+            const content = document.getElementById('content');
+            if (!entries.length) {
+                content.innerHTML = '<div class="empty-state">No entries found. Add your first entry with the + New button.</div>';
+                return;
+            }
+            // Group by category
+            const grouped = {};
+            entries.forEach(e => { const c = e.category||'Uncategorized'; if (!grouped[c]) grouped[c]=[]; grouped[c].push(e); });
+            const cats = Object.keys(grouped).sort();
+            let html = '';
+            cats.forEach(cat => {
+                html += `<div class="category-group"><div class="category-title">${esc(cat)} — ${grouped[cat].length} entries</div>`;
+                grouped[cat].forEach(e => {
+                    html += `<div class="entry">
+                        <div class="entry-header">
+                            <div class="entry-key">${esc(e.key||'Untitled')}</div>
+                        </div>
+                        <div class="entry-value">${esc(e.value||'')}</div>
+                        ${e.source ? `<div class="entry-source">Source: ${esc(e.source)}</div>` : ''}
+                        <div class="entry-footer">
+                            <div class="entry-date">${e.created_at ? new Date(e.created_at).toLocaleDateString() : ''}</div>
+                            <div class="entry-actions">
+                                <button class="btn-sm" onclick="openEdit('${e.id}')">Edit</button>
+                                <button class="btn-sm delete" onclick="deleteEntry('${e.id}','${esc(e.key)}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+            });
+            content.innerHTML = html;
+        }
+
+        // --- Modal ---
+        function openModal(title) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            ['editId','fCategory','fKey','fValue','fSource'].forEach(id => document.getElementById(id).value = '');
+        }
+        function openEdit(id) {
+            const e = allEntries.find(x => x.id === id);
+            if (!e) return;
+            document.getElementById('editId').value = id;
+            document.getElementById('fCategory').value = e.category || '';
+            document.getElementById('fKey').value = e.key || '';
+            document.getElementById('fValue').value = e.value || '';
+            document.getElementById('fSource').value = e.source || '';
+            openModal('Edit Entry');
+        }
+
+        async function saveEntry() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                category: document.getElementById('fCategory').value.trim(),
+                key: document.getElementById('fKey').value.trim(),
+                value: document.getElementById('fValue').value.trim(),
+                source: document.getElementById('fSource').value.trim()
+            };
+            if (!data.key) { showToast('Key is required', true); return; }
+            try {
+                if (id) { await apiUpdate(id, data); showToast('Entry updated'); }
+                else { await apiInsert(data); showToast('Entry added'); }
+                closeModal();
+                await loadEntries();
+            } catch (e) { showToast('Error: ' + e.message, true); }
+        }
+
+        async function deleteEntry(id, key) {
+            if (!confirm('Delete "' + key + '"?')) return;
+            try {
+                await apiDelete(id);
+                showToast('Entry deleted');
+                await loadEntries();
+            } catch (e) { showToast('Error: ' + e.message, true); }
+        }
+
+        // --- Utilities ---
+        function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+        function showToast(msg, isError) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '');
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        function updateStatus(online) {
+            document.getElementById('statusDot').className = 'status-dot' + (online ? '' : ' offline');
+            document.getElementById('statusText').textContent = online ? 'Connected' : 'Disconnected';
+            document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
+        }
+
+        // --- Events ---
+        document.getElementById('search').addEventListener('input', applyFiltersAndRender);
+        document.getElementById('addBtn').addEventListener('click', () => { document.getElementById('editId').value = ''; openModal('New Entry'); });
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+        document.getElementById('saveBtn').addEventListener('click', saveEntry);
+        document.getElementById('refreshBtn').addEventListener('click', loadEntries);
+        document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+        window.addEventListener('offline', () => updateStatus(false));
+        window.addEventListener('online', () => loadEntries());
+
+        setInterval(loadEntries, 30000);
+        loadEntries();
+    </script>
+</body>
+</html>
