@@ -179,6 +179,7 @@
         <div class="fg"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"></div>
         <div class="fg"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter password"></div>
         <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <button class="btn-login" id="signupBtn" style="margin-top:8px;background:#334155;border-color:#475569" onclick="doSignup()">Create Account</button>
         <div class="login-error" id="loginError"></div>
     </div>
 </div>
@@ -784,6 +785,21 @@ function loadAll(){loadProducts();loadContacts();loadKnowledge();loadDeliverable
 let refreshInterval = null;
 
 // --- Auth ---
+async function doSignup(){
+    const email=document.getElementById('loginEmail').value.trim();
+    const pass=document.getElementById('loginPassword').value;
+    const errEl=document.getElementById('loginError');
+    const btn=document.getElementById('signupBtn');
+    errEl.style.display='none';
+    if(!email||!pass){errEl.textContent='Email and password required';errEl.style.display='block';return}
+    btn.disabled=true;btn.textContent='Creating account...';
+    const {data,error}=await sb.auth.signUp({email,password:pass});
+    btn.disabled=false;btn.textContent='Create Account';
+    if(error){errEl.textContent=error.message;errEl.style.display='block';return}
+    if(data.session){onAuth(data.session);return}
+    errEl.textContent='Account created! You can now sign in.';errEl.style.display='block';errEl.style.color='#6ee7b7';
+}
+
 async function doLogin(){
     const email=document.getElementById('loginEmail').value.trim();
     const pass=document.getElementById('loginPassword').value;
