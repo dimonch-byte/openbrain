@@ -158,6 +158,8 @@
     <div class="nav-tab active" data-tab="products">Products</div>
     <div class="nav-tab" data-tab="contacts">Contacts</div>
     <div class="nav-tab" data-tab="knowledge">Knowledge</div>
+    <div class="nav-tab" data-tab="deliverables">Deliverables</div>
+    <div class="nav-tab" data-tab="flags">Flags</div>
 </div>
 
 <!-- ===== PRODUCTS TAB ===== -->
@@ -228,6 +230,48 @@
     <div class="content" id="kContent"><div class="loading">Loading knowledge base...</div></div>
 </div>
 
+<!-- ===== DELIVERABLES TAB ===== -->
+<div class="tab-content" id="tab-deliverables">
+    <div class="header">
+        <div class="header-top">
+            <h2>Deliverables</h2>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="exportCSV('deliverables')" title="Export CSV">&#8681;</button>
+                <button class="btn-icon" onclick="loadDeliverables()" title="Refresh">&#8635;</button>
+                <button class="btn-add" onclick="openDeliverableModal()">+ New</button>
+            </div>
+        </div>
+        <div class="filter-row">
+            <input type="text" class="search-bar" id="dSearch" placeholder="Search title, project, owner...">
+            <select class="filter-select" id="dProject"><option value="">All Projects</option></select>
+            <select class="filter-select" id="dStatusFilter"><option value="">All Status</option><option>Not Started</option><option>In Progress</option><option>Review</option><option>Done</option><option>Blocked</option></select>
+            <select class="filter-select" id="dSort"><option value="due">Due Date</option><option value="project">Project</option><option value="status">Status</option><option value="updated">Updated</option></select>
+        </div>
+    </div>
+    <div class="stats" id="dStats"></div>
+    <div class="content" id="dContent"><div class="loading">Loading deliverables...</div></div>
+</div>
+
+<!-- ===== FLAGS TAB ===== -->
+<div class="tab-content" id="tab-flags">
+    <div class="header">
+        <div class="header-top">
+            <h2>Flags</h2>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="loadFlags()" title="Refresh">&#8635;</button>
+            </div>
+        </div>
+        <div class="filter-row">
+            <input type="text" class="search-bar" id="fSearch" placeholder="Search flags...">
+            <select class="filter-select" id="fType"><option value="">All Types</option><option>Product</option><option>Contact</option><option>Deliverable</option><option>Household</option><option>Summary</option></select>
+            <select class="filter-select" id="fUrgency"><option value="">All Urgency</option><option>High</option><option>Medium</option><option>Low</option></select>
+            <select class="filter-select" id="fResolved"><option value="false">Unresolved</option><option value="true">Resolved</option><option value="">All</option></select>
+        </div>
+    </div>
+    <div class="stats" id="fStats"></div>
+    <div class="content" id="fContent"><div class="loading">Loading flags...</div></div>
+</div>
+
 <!-- Status bar -->
 <div class="sbar">
     <span><span class="sdot" id="sDot"></span><span id="sTxt">Connected</span></span>
@@ -290,6 +334,25 @@
     </div>
 </div>
 
+<!-- Deliverable Modal -->
+<div class="modal-bg" id="dModal">
+    <div class="modal">
+        <h3 id="dModalTitle">New Deliverable</h3>
+        <input type="hidden" id="dId">
+        <div class="fg"><label>Title</label><input class="fi" id="dTitle" placeholder="Deliverable name"></div>
+        <div class="fr">
+            <div class="fg"><label>Project</label><input class="fi" id="dProject2" placeholder="TAMS, LIMS, ITAMS..." list="dProjList"><datalist id="dProjList"></datalist></div>
+            <div class="fg"><label>Owner</label><input class="fi" id="dOwner" placeholder="Who owns this"></div>
+        </div>
+        <div class="fr">
+            <div class="fg"><label>Due Date</label><input type="date" class="fi" id="dDue"></div>
+            <div class="fg"><label>Status</label><select class="fi" id="dStatus2"><option value="">Select...</option><option>Not Started</option><option>In Progress</option><option>Review</option><option>Done</option><option>Blocked</option></select></div>
+        </div>
+        <div class="fg"><label>Notes</label><textarea class="fi" id="dNotes" placeholder="Context, blockers, decisions..."></textarea></div>
+        <div class="modal-acts"><button class="btn-cancel" onclick="closeModal('dModal')">Cancel</button><button class="btn-save" onclick="saveDeliverable()">Save</button></div>
+    </div>
+</div>
+
 <script>
 const SB = 'https://jliupjtnvloyzdvtnvws.supabase.co';
 const AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsaXVwanRudmxveXpkdnRudndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTk5NjMsImV4cCI6MjA5MDI5NTk2M30.ehFTcnolHS87eCzO5BFKnXqp9400l_-f7erE9Ux6Gi8';
@@ -299,12 +362,14 @@ const SCOLORS = ['#6366f1','#818cf8','#8b5cf6','#a78bfa','#7c3aed','#6d28d9','#5
 const PORDER = {High:0,Medium:1,Low:2};
 
 // --- State ---
-let products=[], contacts=[], knowledge=[];
+let products=[], contacts=[], knowledge=[], deliverables=[], flags=[];
 let pStageFilter='', pStatusFilter='', pSortBy='stage';
 let cPriorityFilter='', cOrgFilter='', cSortBy='staleness';
 let kCatFilter='';
+let dProjectFilter='', dStatusFilter2='', dSortBy='due';
+let fTypeFilter='', fUrgencyFilter='', fResolvedFilter='false';
 let bulkMode=false, bulkSelected=new Set();
-let searchQ={p:'',c:'',k:''};
+let searchQ={p:'',c:'',k:'',d:'',f:''};
 
 // --- API helpers ---
 async function api(table,method,query,body){
@@ -338,7 +403,7 @@ function daysSince(d){if(!d)return null;return Math.floor((Date.now()-new Date(d
 function daysUntil(d){if(!d)return null;return Math.floor((new Date(d).getTime()-Date.now())/864e5)}
 function toast(msg,err){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' err':'');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 function status(ok){document.getElementById('sDot').className='sdot'+(ok?'':' off');document.getElementById('sTxt').textContent=ok?'Connected':'Disconnected';document.getElementById('sTime').textContent='Refreshed '+new Date().toLocaleTimeString()}
-function updateTitle(){const tab=document.querySelector('.nav-tab.active').dataset.tab;const counts={products:products.length,contacts:contacts.length,knowledge:knowledge.length};document.title='OpenBrain — '+tab.charAt(0).toUpperCase()+tab.slice(1)+' ('+counts[tab]+')'}
+function updateTitle(){const tab=document.querySelector('.nav-tab.active').dataset.tab;const counts={products:products.length,contacts:contacts.length,knowledge:knowledge.length,deliverables:deliverables.length,flags:flags.filter(f=>!f.resolved).length};document.title='OpenBrain — '+tab.charAt(0).toUpperCase()+tab.slice(1)+' ('+counts[tab]+')'}
 
 // --- Modal helpers ---
 function openModal(id){document.getElementById(id).classList.add('show')}
@@ -543,10 +608,111 @@ async function saveKnowledge(){
 async function delKnowledge(id,k){if(!confirm('Delete "'+k+'"?'))return;try{await del('knowledge_base',id);toast('Deleted');await loadKnowledge()}catch(e){toast('Error: '+e.message,1)}}
 
 // ========================
+// DELIVERABLES
+// ========================
+async function loadDeliverables(){
+    try{deliverables=await get('deliverables');status(true);populateProjectFilter();renderDeliverables()}
+    catch(e){document.getElementById('dContent').innerHTML='<div class="empty">Could not load deliverables</div>';status(false)}
+}
+function populateProjectFilter(){
+    const projs=[...new Set(deliverables.map(d=>d.project).filter(Boolean))].sort();
+    const sel=document.getElementById('dProject');const v=sel.value;
+    sel.innerHTML='<option value="">All Projects</option>'+projs.map(p=>`<option>${esc(p)}</option>`).join('');
+    sel.value=v;
+    document.getElementById('dProjList').innerHTML=projs.map(p=>`<option value="${esc(p)}">`).join('');
+}
+function renderDeliverables(){
+    const q=searchQ.d;
+    let f=deliverables.filter(d=>{
+        if(q&&!(d.title||'').toLowerCase().includes(q)&&!(d.project||'').toLowerCase().includes(q)&&!(d.owner||'').toLowerCase().includes(q))return false;
+        if(dProjectFilter&&d.project!==dProjectFilter)return false;
+        if(dStatusFilter2&&d.status!==dStatusFilter2)return false;
+        return true;
+    });
+    switch(dSortBy){
+        case'due':f.sort((a,b)=>(a.due_date||'9').localeCompare(b.due_date||'9'));break;
+        case'project':f.sort((a,b)=>(a.project||'').localeCompare(b.project||''));break;
+        case'status':f.sort((a,b)=>(a.status||'').localeCompare(b.status||''));break;
+        case'updated':f.sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));break;
+    }
+    // Stats
+    const st=document.getElementById('dStats');
+    const blocked=deliverables.filter(d=>d.status==='Blocked').length;
+    const overdue=deliverables.filter(d=>d.due_date&&d.status!=='Done'&&new Date(d.due_date)<new Date()).length;
+    const inProg=deliverables.filter(d=>d.status==='In Progress').length;
+    const done=deliverables.filter(d=>d.status==='Done').length;
+    st.innerHTML=`<div class="stat"><div class="stat-val">${deliverables.length}</div><div class="stat-lbl">Total</div></div><div class="stat"><div class="stat-val" style="color:#ef4444">${overdue}</div><div class="stat-lbl">Overdue</div></div><div class="stat"><div class="stat-val" style="color:#f59e0b">${blocked}</div><div class="stat-lbl">Blocked</div></div><div class="stat"><div class="stat-val" style="color:#6366f1">${inProg}</div><div class="stat-lbl">In Progress</div></div><div class="stat"><div class="stat-val" style="color:#22c55e">${done}</div><div class="stat-lbl">Done</div></div>`;
+    // Cards
+    const el=document.getElementById('dContent');
+    if(!f.length){el.innerHTML='<div class="empty">No deliverables found</div>';updateTitle();return}
+    el.innerHTML=f.map(d=>{
+        const du=daysUntil(d.due_date);
+        const isOverdue=d.due_date&&d.status!=='Done'&&du!==null&&du<0;
+        const isSoon=d.due_date&&d.status!=='Done'&&du!==null&&du>=0&&du<=7;
+        const cc=isOverdue?' overdue':isSoon?' warning':'';
+        const dueLabel=d.due_date?(isOverdue?Math.abs(du)+'d overdue':du===0?'Due today':du+'d remaining'):'No due date';
+        const dueClass=isOverdue?'overdue':isSoon?'warning':'ok';
+        const statusBadge={'Not Started':'badge-low','In Progress':'badge-medium','Review':'badge-active','Done':'badge-active','Blocked':'badge-high'}[d.status]||'';
+        return`<div class="card${cc}"><div class="card-hdr"><div class="card-name">${hi(d.title,q)}</div><span class="badge ${statusBadge}">${esc(d.status||'?')}</span></div><div class="card-meta"><span>${hi(d.project||'—',q)}</span><span>${hi(d.owner||'—',q)}</span></div>${d.notes?`<div class="card-notes">${hi(d.notes,q)}</div>`:''}<div class="card-touch ${dueClass}">${dueLabel}</div><div class="card-ft"><div class="card-time">${timeAgo(d.updated_at)}</div><div class="card-acts"><button class="btn-sm" onclick="editDeliverable('${d.id}')">Edit</button><button class="btn-sm del" onclick="delDeliverable('${d.id}','${esc(d.title)}')">Delete</button></div></div></div>`;
+    }).join('');
+    updateTitle();
+}
+function openDeliverableModal(){document.getElementById('dId').value='';['dTitle','dProject2','dOwner','dDue','dNotes'].forEach(i=>document.getElementById(i).value='');document.getElementById('dStatus2').selectedIndex=0;document.getElementById('dModalTitle').textContent='New Deliverable';openModal('dModal')}
+function editDeliverable(id){const d=deliverables.find(x=>x.id===id);if(!d)return;document.getElementById('dId').value=id;document.getElementById('dTitle').value=d.title||'';document.getElementById('dProject2').value=d.project||'';document.getElementById('dOwner').value=d.owner||'';document.getElementById('dDue').value=d.due_date||'';document.getElementById('dStatus2').value=d.status||'';document.getElementById('dNotes').value=d.notes||'';document.getElementById('dModalTitle').textContent='Edit Deliverable';openModal('dModal')}
+async function saveDeliverable(){
+    const id=document.getElementById('dId').value;
+    const d={title:document.getElementById('dTitle').value.trim(),project:document.getElementById('dProject2').value.trim(),owner:document.getElementById('dOwner').value.trim(),due_date:document.getElementById('dDue').value||null,status:document.getElementById('dStatus2').value,notes:document.getElementById('dNotes').value.trim()};
+    if(!d.title){toast('Title is required',1);return}
+    try{if(id)await upd('deliverables',id,d);else await ins('deliverables',d);closeModal('dModal');toast(id?'Deliverable updated':'Deliverable added');await loadDeliverables()}catch(e){toast('Error: '+e.message,1)}
+}
+async function delDeliverable(id,n){if(!confirm('Delete "'+n+'"?'))return;try{await del('deliverables',id);toast('Deleted');await loadDeliverables()}catch(e){toast('Error: '+e.message,1)}}
+
+// ========================
+// FLAGS
+// ========================
+async function loadFlags(){
+    try{flags=await get('flags');status(true);renderFlags()}
+    catch(e){document.getElementById('fContent').innerHTML='<div class="empty">Could not load flags</div>';status(false)}
+}
+function renderFlags(){
+    const q=searchQ.f;
+    const resolved=fResolvedFilter;
+    let f=flags.filter(fl=>{
+        if(q&&!(fl.title||'').toLowerCase().includes(q)&&!(fl.detail||'').toLowerCase().includes(q))return false;
+        if(fTypeFilter&&fl.type!==fTypeFilter)return false;
+        if(fUrgencyFilter&&fl.urgency!==fUrgencyFilter)return false;
+        if(resolved==='false'&&fl.resolved)return false;
+        if(resolved==='true'&&!fl.resolved)return false;
+        return true;
+    });
+    // Sort: urgency High first, then by date
+    const uOrder={High:0,Medium:1,Low:2};
+    f.sort((a,b)=>{const ua=uOrder[a.urgency]??9,ub=uOrder[b.urgency]??9;if(ua!==ub)return ua-ub;return new Date(b.created_at||0)-new Date(a.created_at||0)});
+    // Stats
+    const st=document.getElementById('fStats');
+    const unresolved=flags.filter(fl=>!fl.resolved);
+    const high=unresolved.filter(fl=>fl.urgency==='High').length;
+    const med=unresolved.filter(fl=>fl.urgency==='Medium').length;
+    const low=unresolved.filter(fl=>fl.urgency==='Low').length;
+    st.innerHTML=`<div class="stat"><div class="stat-val">${unresolved.length}</div><div class="stat-lbl">Unresolved</div></div><div class="stat"><div class="stat-val" style="color:#ef4444">${high}</div><div class="stat-lbl">High</div></div><div class="stat"><div class="stat-val" style="color:#f59e0b">${med}</div><div class="stat-lbl">Medium</div></div><div class="stat"><div class="stat-val" style="color:#6366f1">${low}</div><div class="stat-lbl">Low</div></div>`;
+    // Cards
+    const el=document.getElementById('fContent');
+    if(!f.length){el.innerHTML='<div class="empty">No flags found</div>';updateTitle();return}
+    el.innerHTML=f.map(fl=>{
+        const urgBadge={'High':'badge-high','Medium':'badge-medium','Low':'badge-low'}[fl.urgency]||'';
+        const resolved=fl.resolved;
+        return`<div class="card" style="${resolved?'opacity:.5':''}"><div class="card-hdr"><div class="card-name">${hi(fl.title,q)}</div><span class="badge ${urgBadge}">${esc(fl.urgency||'?')}</span></div><div class="card-meta"><span>${esc(fl.type||'—')}</span><span>${new Date(fl.created_at).toLocaleDateString()}</span></div>${fl.detail?`<div class="card-notes">${hi(fl.detail,q)}</div>`:''}<div class="card-ft"><div class="card-time">${timeAgo(fl.created_at)}</div><div class="card-acts">${!resolved?`<button class="btn-sm touch" onclick="resolveFlag('${fl.id}')">Resolve</button>`:''}<button class="btn-sm del" onclick="delFlag('${fl.id}')">Delete</button></div></div></div>`;
+    }).join('');
+    updateTitle();
+}
+async function resolveFlag(id){try{await api('flags','PATCH','?id=eq.'+id,{resolved:true});toast('Flag resolved');await loadFlags()}catch(e){toast('Error: '+e.message,1)}}
+async function delFlag(id){if(!confirm('Delete this flag?'))return;try{await del('flags',id);toast('Deleted');await loadFlags()}catch(e){toast('Error: '+e.message,1)}}
+
+// ========================
 // CSV EXPORT
 // ========================
 function exportCSV(table){
-    const map={products:{data:products,cols:['name','stage','platform','price_cad','status','category','notes','updated_at']},contacts:{data:contacts,cols:['name','org','context','priority','last_touch','follow_up_by','notes','updated_at']}};
+    const map={products:{data:products,cols:['name','stage','platform','price_cad','status','category','notes','updated_at']},contacts:{data:contacts,cols:['name','org','context','priority','last_touch','follow_up_by','notes','updated_at']},deliverables:{data:deliverables,cols:['project','title','owner','due_date','status','notes','updated_at']}};
     const t=map[table];if(!t||!t.data.length){toast('No data',1);return}
     const hdr=t.cols.join(',');
     const rows=t.data.map(r=>t.cols.map(c=>{let v=r[c]!=null?String(r[c]):'';if(v.includes(',')||v.includes('"')||v.includes('\n'))v='"'+v.replace(/"/g,'""')+'"';return v}).join(','));
@@ -566,16 +732,26 @@ document.getElementById('cPriority').addEventListener('change',e=>{cPriorityFilt
 document.getElementById('cOrg').addEventListener('change',e=>{cOrgFilter=e.target.value;renderContacts()});
 document.getElementById('cSort').addEventListener('change',e=>{cSortBy=e.target.value;renderContacts()});
 document.getElementById('kSearch').addEventListener('input',e=>{searchQ.k=e.target.value.toLowerCase();renderKnowledge()});
+document.getElementById('dSearch').addEventListener('input',e=>{searchQ.d=e.target.value.toLowerCase();renderDeliverables()});
+document.getElementById('dProject').addEventListener('change',e=>{dProjectFilter=e.target.value;renderDeliverables()});
+document.getElementById('dStatusFilter').addEventListener('change',e=>{dStatusFilter2=e.target.value;renderDeliverables()});
+document.getElementById('dSort').addEventListener('change',e=>{dSortBy=e.target.value;renderDeliverables()});
+document.getElementById('fSearch').addEventListener('input',e=>{searchQ.f=e.target.value.toLowerCase();renderFlags()});
+document.getElementById('fType').addEventListener('change',e=>{fTypeFilter=e.target.value;renderFlags()});
+document.getElementById('fUrgency').addEventListener('change',e=>{fUrgencyFilter=e.target.value;renderFlags()});
+document.getElementById('fResolved').addEventListener('change',e=>{fResolvedFilter=e.target.value;renderFlags()});
 
 // Offline
 window.addEventListener('offline',()=>status(false));
-window.addEventListener('online',()=>{loadProducts();loadContacts();loadKnowledge()});
+window.addEventListener('online',()=>{loadAll()});
+
+function loadAll(){loadProducts();loadContacts();loadKnowledge();loadDeliverables();loadFlags()}
 
 // Auto-refresh
-setInterval(()=>{loadProducts();loadContacts();loadKnowledge()},30000);
+setInterval(loadAll,30000);
 
 // Initial load
-loadProducts();loadContacts();loadKnowledge();
+loadAll();
 </script>
 </body>
 </html>
