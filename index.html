@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
     <title>OpenBrain - Product Pipeline</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,22 +16,58 @@
             color: #e2e8f0;
             min-height: 100vh;
         }
+
+        /* Header */
         .header {
             background: #1e293b;
-            padding: 16px 20px;
+            padding: 16px 20px 12px;
             border-bottom: 1px solid #334155;
             position: sticky;
             top: 0;
             z-index: 10;
         }
-        .header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 12px;
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
+        .header h1 { font-size: 20px; font-weight: 700; color: #f8fafc; }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+        .btn-icon {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { background: #475569; color: #e2e8f0; }
+        .btn-add {
+            background: #4f46e5;
+            border: 1px solid #6366f1;
+            color: #fff;
+            padding: 0 14px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .btn-add:hover { background: #4338ca; }
+        .search-row { display: flex; gap: 8px; }
         .search-bar {
-            width: 100%;
+            flex: 1;
             padding: 10px 14px;
             background: #0f172a;
             border: 1px solid #334155;
@@ -38,6 +78,81 @@
         }
         .search-bar:focus { border-color: #6366f1; }
         .search-bar::placeholder { color: #64748b; }
+        .sort-select {
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+        .sort-select:focus { border-color: #6366f1; }
+
+        /* Offline indicator */
+        .offline-banner {
+            background: #78350f;
+            color: #fcd34d;
+            padding: 8px 20px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        .offline-banner.show { display: block; }
+
+        /* Pipeline visualization */
+        .pipeline {
+            padding: 16px 20px 12px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .pipeline-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .pipeline-bar {
+            display: flex;
+            height: 28px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #334155;
+        }
+        .pipeline-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            transition: width 0.3s;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .pipeline-legend {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            font-size: 11px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Summary chips */
         .summary {
             display: flex;
             gap: 8px;
@@ -55,10 +170,9 @@
             font-weight: 600;
             color: #94a3b8;
         }
-        .summary-chip .count {
-            color: #6366f1;
-            margin-left: 4px;
-        }
+        .summary-chip .count { color: #6366f1; margin-left: 4px; }
+
+        /* Content */
         .content { padding: 16px 20px 80px; }
         .stage-group { margin-bottom: 24px; }
         .stage-title {
@@ -71,6 +185,8 @@
             padding-bottom: 6px;
             border-bottom: 1px solid #1e293b;
         }
+
+        /* Cards */
         .card {
             background: #1e293b;
             border: 1px solid #334155;
@@ -86,12 +202,7 @@
             align-items: flex-start;
             margin-bottom: 8px;
         }
-        .card-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: #f8fafc;
-            flex: 1;
-        }
+        .card-name { font-size: 16px; font-weight: 600; color: #f8fafc; flex: 1; }
         .badge {
             padding: 3px 10px;
             border-radius: 12px;
@@ -112,138 +223,480 @@
             font-size: 13px;
             color: #94a3b8;
             margin-bottom: 6px;
+            flex-wrap: wrap;
         }
-        .card-meta span { display: flex; align-items: center; gap: 4px; }
-        .card-notes {
-            font-size: 13px;
-            color: #64748b;
-            line-height: 1.4;
+        .card-notes { font-size: 13px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
         }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #475569;
-            font-size: 15px;
+        .card-updated { font-size: 11px; color: #475569; }
+        .card-actions { display: flex; gap: 6px; }
+        .btn-sm {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
         }
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6366f1;
-            font-size: 15px;
-        }
-        .error-banner {
-            background: #7f1d1d;
-            color: #fca5a5;
-            padding: 12px 20px;
-            font-size: 14px;
+        .btn-sm:hover { background: #475569; color: #e2e8f0; }
+        .btn-sm.delete:hover { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+
+        /* Modal */
+        .modal-overlay {
             display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h2 { font-size: 18px; color: #f8fafc; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-input:focus { border-color: #6366f1; }
+        textarea.form-input { resize: vertical; min-height: 60px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-cancel {
+            padding: 10px 20px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-save {
+            padding: 10px 20px;
+            background: #4f46e5;
+            border: 1px solid #6366f1;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-save:hover { background: #4338ca; }
+
+        /* Status bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #475569;
+            z-index: 10;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-dot.offline { background: #ef4444; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #065f46;
+            color: #6ee7b7;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+            animation: fadeIn 0.2s;
+        }
+        .toast.error { background: #7f1d1d; color: #fca5a5; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #475569; font-size: 15px; }
+        .loading { text-align: center; padding: 60px 20px; color: #6366f1; font-size: 15px; }
+        .error-banner { background: #7f1d1d; color: #fca5a5; padding: 12px 20px; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Product Pipeline</h1>
-        <input type="text" class="search-bar" id="search" placeholder="Search by name or category...">
+        <div class="header-top">
+            <h1>Product Pipeline</h1>
+            <div class="header-actions">
+                <button class="btn-icon" id="refreshBtn" title="Refresh">&#8635;</button>
+                <button class="btn-add" id="addBtn">+ New</button>
+            </div>
+        </div>
+        <div class="search-row">
+            <input type="text" class="search-bar" id="search" placeholder="Search by name or category...">
+            <select class="sort-select" id="sortSelect">
+                <option value="stage">Stage</option>
+                <option value="status">Status</option>
+                <option value="price">Price</option>
+                <option value="updated">Updated</option>
+            </select>
+        </div>
     </div>
+    <div class="offline-banner" id="offlineBanner">You are offline — data may be stale</div>
+    <div class="pipeline" id="pipeline"></div>
     <div class="summary" id="summary"></div>
     <div class="error-banner" id="error"></div>
     <div class="content" id="content">
         <div class="loading">Loading products...</div>
     </div>
 
+    <!-- Status bar -->
+    <div class="status-bar">
+        <span><span class="status-dot" id="statusDot"></span><span id="statusText">Connected</span></span>
+        <span id="lastRefresh"></span>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">New Product</h2>
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" class="form-input" id="fName" placeholder="Product name">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Stage</label>
+                    <select class="form-input" id="fStage">
+                        <option value="">Select...</option>
+                        <option>D1</option><option>D2</option><option>D3</option><option>D4</option><option>D5</option>
+                        <option>D6</option><option>D7</option><option>D8</option><option>D9</option><option>D10</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-input" id="fStatus">
+                        <option value="">Select...</option>
+                        <option>Active</option><option>Paused</option><option>Blocked</option><option>Complete</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Platform</label>
+                    <select class="form-input" id="fPlatform">
+                        <option value="">Select...</option>
+                        <option>Etsy</option><option>Gumroad</option><option>Both</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price (CAD)</label>
+                    <input type="number" class="form-input" id="fPrice" placeholder="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" class="form-input" id="fCategory" placeholder="e.g. PM Tools, AI Tools">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea class="form-input" id="fNotes" placeholder="Description or context..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelBtn">Cancel</button>
+                <button class="btn-save" id="saveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://jliupjtnvloyzdvtnvws.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsaXVwanRudmxveXpkdnRudndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTk5NjMsImV4cCI6MjA5MDI5NTk2M30.ehFTcnolHS87eCzO5BFKnXqp9400l_-f7erE9Ux6Gi8';
+        const HEADERS = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
 
         const STAGES = ['D1','D2','D3','D4','D5','D6','D7','D8','D9','D10'];
+        const STAGE_COLORS = ['#6366f1','#818cf8','#8b5cf6','#a78bfa','#7c3aed','#6d28d9','#5b21b6','#4c1d95','#3730a3','#312e81'];
         let allProducts = [];
+        let currentSort = 'stage';
+        let autoRefreshTimer = null;
 
+        // --- API ---
+        async function apiGet() {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/products?select=*', { headers: HEADERS });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiInsert(product) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/products', { method: 'POST', headers: HEADERS, body: JSON.stringify(product) });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiUpdate(id, product) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/products?id=eq.' + id, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ ...product, updated_at: new Date().toISOString() }) });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            return res.json();
+        }
+        async function apiDelete(id) {
+            const res = await fetch(SUPABASE_URL + '/rest/v1/products?id=eq.' + id, { method: 'DELETE', headers: HEADERS });
+            if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        }
+
+        // --- Load & Render ---
         async function loadProducts() {
             try {
-                const res = await fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=stage.asc', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                    }
-                });
-                if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-                allProducts = await res.json();
-                render(allProducts);
+                allProducts = await apiGet();
+                updateStatus(true);
+                applyFiltersAndRender();
             } catch (e) {
                 document.getElementById('error').textContent = 'Failed to load: ' + e.message;
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('content').innerHTML = '<div class="empty-state">Could not connect to database</div>';
+                updateStatus(false);
+            }
+        }
+
+        function applyFiltersAndRender() {
+            const q = document.getElementById('search').value.toLowerCase();
+            let filtered = allProducts;
+            if (q) filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
+            filtered = sortProducts(filtered, currentSort);
+            render(filtered);
+        }
+
+        function sortProducts(products, by) {
+            const copy = [...products];
+            switch (by) {
+                case 'stage': return copy.sort((a,b) => STAGES.indexOf(a.stage) - STAGES.indexOf(b.stage));
+                case 'status': return copy.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+                case 'price': return copy.sort((a,b) => (b.price_cad||0) - (a.price_cad||0));
+                case 'updated': return copy.sort((a,b) => new Date(b.updated_at||0) - new Date(a.updated_at||0));
+                default: return copy;
             }
         }
 
         function render(products) {
-            const content = document.getElementById('content');
+            renderPipeline(products);
+            renderSummary(products);
+            renderCards(products);
+        }
+
+        function renderPipeline(products) {
+            const el = document.getElementById('pipeline');
+            const total = products.length;
+            if (!total) { el.innerHTML = ''; return; }
+            const counts = {};
+            products.forEach(p => { const s = p.stage||'?'; counts[s] = (counts[s]||0) + 1; });
+            let barHtml = '';
+            let legendHtml = '';
+            STAGES.forEach((s, i) => {
+                if (!counts[s]) return;
+                const pct = (counts[s] / total * 100);
+                barHtml += `<div class="pipeline-segment" style="width:${pct}%;background:${STAGE_COLORS[i]}" title="${s}: ${counts[s]}">${pct > 8 ? s : ''}</div>`;
+                legendHtml += `<div class="legend-item"><span class="legend-dot" style="background:${STAGE_COLORS[i]}"></span>${s}: ${counts[s]}</div>`;
+            });
+            el.innerHTML = `<div class="pipeline-label">Pipeline Distribution (${total} products)</div><div class="pipeline-bar">${barHtml}</div><div class="pipeline-legend">${legendHtml}</div>`;
+        }
+
+        function renderSummary(products) {
             const summary = document.getElementById('summary');
-
-            // Summary chips
             const stageCounts = {};
-            products.forEach(p => {
-                const s = p.stage || 'Unknown';
-                stageCounts[s] = (stageCounts[s] || 0) + 1;
-            });
-            summary.innerHTML = STAGES
-                .filter(s => stageCounts[s])
-                .map(s => `<div class="summary-chip">${s}<span class="count">${stageCounts[s]}</span></div>`)
-                .join('') || '<div class="summary-chip">No products</div>';
+            products.forEach(p => { const s = p.stage||'Unknown'; stageCounts[s] = (stageCounts[s]||0) + 1; });
+            summary.innerHTML = STAGES.filter(s => stageCounts[s]).map(s => `<div class="summary-chip">${s}<span class="count">${stageCounts[s]}</span></div>`).join('') || '<div class="summary-chip">No products</div>';
+        }
 
-            // Group by stage
-            const grouped = {};
-            products.forEach(p => {
-                const s = p.stage || 'Unknown';
-                if (!grouped[s]) grouped[s] = [];
-                grouped[s].push(p);
-            });
-
-            const stageOrder = STAGES.concat(Object.keys(grouped).filter(s => !STAGES.includes(s)));
-            let html = '';
-
-            stageOrder.forEach(stage => {
-                if (!grouped[stage]) return;
-                html += `<div class="stage-group">
-                    <div class="stage-title">${stage} — ${grouped[stage].length} product${grouped[stage].length > 1 ? 's' : ''}</div>`;
-                grouped[stage].forEach(p => {
-                    const statusClass = (p.status || '').toLowerCase();
-                    const badgeClass = `badge-${statusClass}`;
-                    const price = p.price_cad != null ? `$${Number(p.price_cad).toFixed(0)} CAD` : 'TBD';
-                    html += `<div class="card">
-                        <div class="card-header">
-                            <div class="card-name">${esc(p.name || 'Untitled')}</div>
-                            <span class="badge ${badgeClass}">${esc(p.status || 'Unknown')}</span>
-                        </div>
-                        <div class="card-meta">
-                            <span>${esc(p.platform || '—')}</span>
-                            <span>${price}</span>
-                            <span>${esc(p.category || '—')}</span>
-                        </div>
-                        ${p.notes ? `<div class="card-notes">${esc(p.notes)}</div>` : ''}
-                    </div>`;
+        function renderCards(products) {
+            const content = document.getElementById('content');
+            if (currentSort === 'stage') {
+                const grouped = {};
+                products.forEach(p => { const s = p.stage||'Unknown'; if (!grouped[s]) grouped[s]=[]; grouped[s].push(p); });
+                const order = STAGES.concat(Object.keys(grouped).filter(s => !STAGES.includes(s)));
+                let html = '';
+                order.forEach(stage => {
+                    if (!grouped[stage]) return;
+                    html += `<div class="stage-group"><div class="stage-title">${stage} — ${grouped[stage].length} product${grouped[stage].length>1?'s':''}</div>`;
+                    grouped[stage].forEach(p => { html += cardHtml(p); });
+                    html += '</div>';
                 });
-                html += '</div>';
-            });
-
-            content.innerHTML = html || '<div class="empty-state">No products found</div>';
+                content.innerHTML = html || '<div class="empty-state">No products found</div>';
+            } else {
+                content.innerHTML = products.map(p => cardHtml(p)).join('') || '<div class="empty-state">No products found</div>';
+            }
         }
 
-        function esc(str) {
-            const d = document.createElement('div');
-            d.textContent = str;
-            return d.innerHTML;
+        function cardHtml(p) {
+            const statusClass = 'badge-' + (p.status||'').toLowerCase();
+            const price = p.price_cad != null ? '$' + Number(p.price_cad).toFixed(0) + ' CAD' : 'TBD';
+            return `<div class="card">
+                <div class="card-header">
+                    <div class="card-name">${esc(p.name||'Untitled')}</div>
+                    <span class="badge ${statusClass}">${esc(p.status||'Unknown')}</span>
+                </div>
+                <div class="card-meta">
+                    <span>${esc(p.platform||'—')}</span>
+                    <span>${price}</span>
+                    <span>${esc(p.category||'—')}</span>
+                </div>
+                ${p.notes ? `<div class="card-notes">${esc(p.notes)}</div>` : ''}
+                <div class="card-footer">
+                    <div class="card-updated">${timeAgo(p.updated_at)}</div>
+                    <div class="card-actions">
+                        <button class="btn-sm" onclick="openEdit('${p.id}')">Edit</button>
+                        <button class="btn-sm delete" onclick="deleteProduct('${p.id}','${esc(p.name)}')">Delete</button>
+                    </div>
+                </div>
+            </div>`;
         }
 
-        document.getElementById('search').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase();
-            if (!q) return render(allProducts);
-            render(allProducts.filter(p =>
-                (p.name || '').toLowerCase().includes(q) ||
-                (p.category || '').toLowerCase().includes(q)
-            ));
-        });
+        // --- Time ---
+        function timeAgo(dateStr) {
+            if (!dateStr) return '';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            const days = Math.floor(hrs / 24);
+            if (days < 30) return days + 'd ago';
+            return Math.floor(days / 30) + 'mo ago';
+        }
 
+        // --- Modal ---
+        function openModal(title) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            ['editId','fName','fPrice','fCategory','fNotes'].forEach(id => document.getElementById(id).value = '');
+            ['fStage','fStatus','fPlatform'].forEach(id => document.getElementById(id).selectedIndex = 0);
+        }
+        function openEdit(id) {
+            const p = allProducts.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('editId').value = id;
+            document.getElementById('fName').value = p.name || '';
+            document.getElementById('fStage').value = p.stage || '';
+            document.getElementById('fStatus').value = p.status || '';
+            document.getElementById('fPlatform').value = p.platform || '';
+            document.getElementById('fPrice').value = p.price_cad != null ? p.price_cad : '';
+            document.getElementById('fCategory').value = p.category || '';
+            document.getElementById('fNotes').value = p.notes || '';
+            openModal('Edit Product');
+        }
+
+        async function saveProduct() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('fName').value.trim(),
+                stage: document.getElementById('fStage').value,
+                status: document.getElementById('fStatus').value,
+                platform: document.getElementById('fPlatform').value,
+                price_cad: document.getElementById('fPrice').value ? Number(document.getElementById('fPrice').value) : null,
+                category: document.getElementById('fCategory').value.trim(),
+                notes: document.getElementById('fNotes').value.trim()
+            };
+            if (!data.name) { showToast('Name is required', true); return; }
+            try {
+                if (id) { await apiUpdate(id, data); showToast('Product updated'); }
+                else { await apiInsert(data); showToast('Product added'); }
+                closeModal();
+                await loadProducts();
+            } catch (e) { showToast('Error: ' + e.message, true); }
+        }
+
+        async function deleteProduct(id, name) {
+            if (!confirm('Delete "' + name + '"?')) return;
+            try {
+                await apiDelete(id);
+                showToast('Product deleted');
+                await loadProducts();
+            } catch (e) { showToast('Error: ' + e.message, true); }
+        }
+
+        // --- Utilities ---
+        function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+        function showToast(msg, isError) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '');
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        function updateStatus(online) {
+            document.getElementById('statusDot').className = 'status-dot' + (online ? '' : ' offline');
+            document.getElementById('statusText').textContent = online ? 'Connected' : 'Disconnected';
+            document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
+        }
+
+        // --- Events ---
+        document.getElementById('search').addEventListener('input', applyFiltersAndRender);
+        document.getElementById('sortSelect').addEventListener('change', (e) => { currentSort = e.target.value; applyFiltersAndRender(); });
+        document.getElementById('addBtn').addEventListener('click', () => { document.getElementById('editId').value = ''; openModal('New Product'); });
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+        document.getElementById('saveBtn').addEventListener('click', saveProduct);
+        document.getElementById('refreshBtn').addEventListener('click', loadProducts);
+        document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+        // Offline detection
+        window.addEventListener('offline', () => { document.getElementById('offlineBanner').classList.add('show'); updateStatus(false); });
+        window.addEventListener('online', () => { document.getElementById('offlineBanner').classList.remove('show'); loadProducts(); });
+
+        // Auto-refresh every 30 seconds
+        autoRefreshTimer = setInterval(loadProducts, 30000);
+
+        // Initial load
         loadProducts();
     </script>
 </body>
