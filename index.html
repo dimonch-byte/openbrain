@@ -169,7 +169,12 @@
             font-size: 13px;
             font-weight: 600;
             color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
+        .summary-chip:hover { background: #475569; color: #e2e8f0; }
+        .summary-chip.active { border-color: #6366f1; background: #3730a3; color: #e2e8f0; }
         .summary-chip .count { color: #6366f1; margin-left: 4px; }
 
         /* Content */
@@ -373,12 +378,20 @@
         <div class="header-top">
             <h1>Product Pipeline</h1>
             <div class="header-actions">
+                <button class="btn-icon" id="exportBtn" title="Export CSV">&#8681;</button>
                 <button class="btn-icon" id="refreshBtn" title="Refresh">&#8635;</button>
                 <button class="btn-add" id="addBtn">+ New</button>
             </div>
         </div>
         <div class="search-row">
             <input type="text" class="search-bar" id="search" placeholder="Search by name or category...">
+            <select class="sort-select" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Paused">Paused</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Complete">Complete</option>
+            </select>
             <select class="sort-select" id="sortSelect">
                 <option value="stage">Stage</option>
                 <option value="status">Status</option>
@@ -467,6 +480,8 @@
         const STAGE_COLORS = ['#6366f1','#818cf8','#8b5cf6','#a78bfa','#7c3aed','#6d28d9','#5b21b6','#4c1d95','#3730a3','#312e81'];
         let allProducts = [];
         let currentSort = 'stage';
+        let currentStageFilter = '';
+        let currentStatusFilter = '';
         let autoRefreshTimer = null;
 
         // --- API ---
@@ -508,8 +523,15 @@
             const q = document.getElementById('search').value.toLowerCase();
             let filtered = allProducts;
             if (q) filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
+            if (currentStageFilter) filtered = filtered.filter(p => p.stage === currentStageFilter);
+            if (currentStatusFilter) filtered = filtered.filter(p => p.status === currentStatusFilter);
             filtered = sortProducts(filtered, currentSort);
             render(filtered);
+        }
+
+        function toggleStageFilter(stage) {
+            currentStageFilter = currentStageFilter === stage ? '' : stage;
+            applyFiltersAndRender();
         }
 
         function sortProducts(products, by) {
@@ -549,8 +571,13 @@
         function renderSummary(products) {
             const summary = document.getElementById('summary');
             const stageCounts = {};
-            products.forEach(p => { const s = p.stage||'Unknown'; stageCounts[s] = (stageCounts[s]||0) + 1; });
-            summary.innerHTML = STAGES.filter(s => stageCounts[s]).map(s => `<div class="summary-chip">${s}<span class="count">${stageCounts[s]}</span></div>`).join('') || '<div class="summary-chip">No products</div>';
+            allProducts.forEach(p => { const s = p.stage||'Unknown'; stageCounts[s] = (stageCounts[s]||0) + 1; });
+            const chipsHtml = STAGES.filter(s => stageCounts[s]).map(s => {
+                const active = currentStageFilter === s ? ' active' : '';
+                return `<div class="summary-chip${active}" onclick="toggleStageFilter('${s}')">${s}<span class="count">${stageCounts[s]}</span></div>`;
+            }).join('');
+            const clearHtml = currentStageFilter ? `<div class="summary-chip active" onclick="toggleStageFilter('${currentStageFilter}')" style="background:#7f1d1d;border-color:#ef4444">Clear</div>` : '';
+            summary.innerHTML = chipsHtml + clearHtml || '<div class="summary-chip">No products</div>';
         }
 
         function renderCards(products) {
@@ -680,13 +707,36 @@
             document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
         }
 
+        // --- CSV Export ---
+        function exportCSV() {
+            if (!allProducts.length) { showToast('No data to export', true); return; }
+            const cols = ['name','stage','platform','price_cad','status','category','notes','updated_at'];
+            const header = cols.join(',');
+            const rows = allProducts.map(p => cols.map(c => {
+                let v = p[c] != null ? String(p[c]) : '';
+                if (v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g, '""') + '"';
+                return v;
+            }).join(','));
+            const csv = [header, ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'products_' + new Date().toISOString().slice(0,10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('CSV exported');
+        }
+
         // --- Events ---
         document.getElementById('search').addEventListener('input', applyFiltersAndRender);
         document.getElementById('sortSelect').addEventListener('change', (e) => { currentSort = e.target.value; applyFiltersAndRender(); });
+        document.getElementById('statusFilter').addEventListener('change', (e) => { currentStatusFilter = e.target.value; applyFiltersAndRender(); });
         document.getElementById('addBtn').addEventListener('click', () => { document.getElementById('editId').value = ''; openModal('New Product'); });
         document.getElementById('cancelBtn').addEventListener('click', closeModal);
         document.getElementById('saveBtn').addEventListener('click', saveProduct);
         document.getElementById('refreshBtn').addEventListener('click', loadProducts);
+        document.getElementById('exportBtn').addEventListener('click', exportCSV);
         document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
 
         // Offline detection
